@@ -1,0 +1,7 @@
+.loading {
+  display: grid;
+  min-height: calc(100vh - var(--header-height));
+  align-content: center;
+  gap: var(--space-4);
+  padding-block: var(--space-10);
+}

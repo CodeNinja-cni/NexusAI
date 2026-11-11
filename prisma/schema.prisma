@@ -1,0 +1,1044 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PlatformRole {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_DELETION
+  DELETED
+}
+
+enum ProvisioningStatus {
+  PENDING
+  RUNNING
+  READY
+  FAILED
+}
+
+enum WorkspaceStatus {
+  ACTIVE
+  PENDING_DELETION
+}
+
+enum WorkspaceKind {
+  PERSONAL
+  TEAM
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum WorkspaceInvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+enum OutboxStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
+enum ConversationStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum DocumentStatus {
+  UPLOADING
+  UPLOADED
+  QUEUED
+  PROCESSING
+  READY
+  FAILED
+  QUARANTINED
+  DELETING
+}
+
+enum DocumentProcessingStatus {
+  QUEUED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  QUARANTINED
+}
+
+enum UsageStatus {
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  TIMED_OUT
+}
+
+enum UsageSource {
+  PROVIDER_REPORTED
+  DEVELOPMENT_ESTIMATE
+  UNAVAILABLE
+}
+
+enum UsagePricingStatus {
+  PRICED
+  UNPRICED
+}
+
+enum UsageReservationStatus {
+  RESERVED
+  SETTLED
+  RELEASED
+}
+
+enum AccountDeletionStatus {
+  PENDING
+  CANCELLED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum MessageRole {
+  SYSTEM
+  USER
+  ASSISTANT
+  TOOL
+}
+
+enum MessageStatus {
+  PENDING
+  STREAMING
+  CANCEL_REQUESTED
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum WorkflowExecutionStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCEL_REQUESTED
+  CANCELLED
+  TIMED_OUT
+}
+
+enum WorkflowLogLevel {
+  INFO
+  WARN
+  ERROR
+}
+
+model User {
+  id                  String       @id
+  name                String       @db.VarChar(120)
+  email               String       @unique @db.VarChar(320)
+  emailVerified       Boolean      @default(false) @map("email_verified")
+  image               String?      @db.VarChar(2048)
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
+  platformRole        PlatformRole @default(USER) @map("platform_role")
+  status              UserStatus   @default(ACTIVE)
+  suspendedAt         DateTime?    @map("suspended_at")
+  deletionRequestedAt DateTime?    @map("deletion_requested_at")
+  deletedAt           DateTime?    @map("deleted_at")
+  version             Int          @default(1)
+  twoFactorEnabled    Boolean      @default(false) @map("two_factor_enabled")
+
+  sessions                 Session[]
+  accounts                 Account[]
+  preference               UserPreference?
+  provisioning             UserProvisioning?
+  ownedWorkspaces          Workspace[]              @relation("WorkspaceOwner")
+  createdWorkspaces        Workspace[]              @relation("WorkspaceCreator")
+  memberships              WorkspaceMember[]        @relation("WorkspaceMemberUser")
+  invitedMemberships       WorkspaceMember[]        @relation("WorkspaceMemberInviter")
+  sentWorkspaceInvitations WorkspaceInvitation[]    @relation("WorkspaceInvitationInviter")
+  acceptedInvitations      WorkspaceInvitation[]    @relation("WorkspaceInvitationAcceptor")
+  auditLogs                AuditLog[]               @relation("AuditActor")
+  createdConversations     Conversation[]           @relation("ConversationCreator")
+  createdMessages          Message[]                @relation("MessageCreator")
+  cancelledMessages        Message[]                @relation("MessageCanceller")
+  createdDocuments         Document[]               @relation("DocumentCreator")
+  attachedDocuments        ConversationDocument[]   @relation("ConversationDocumentAttacher")
+  usageRecords             UsageRecord[]
+  usageReservations        UsageReservation[]
+  notifications            Notification[]
+  accountDeletionRequests  AccountDeletionRequest[]
+  createdWorkflows         Workflow[]               @relation("WorkflowCreator")
+  createdWorkflowVersions  WorkflowVersion[]        @relation("WorkflowVersionCreator")
+  workflowExecutions       WorkflowExecution[]      @relation("WorkflowExecutionRequester")
+  twoFactor                TwoFactor?
+  updatedPlatformSettings  PlatformSetting[]         @relation("PlatformSettingUpdater")
+
+  @@index([status, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([deletionRequestedAt])
+  @@map("users")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime @map("expires_at")
+  token     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  userId    String   @map("user_id")
+  mfaVerifiedAt DateTime? @map("mfa_verified_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt(sort: Desc)])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model TwoFactor {
+  id                      String    @id
+  userId                  String    @unique @map("user_id")
+  secret                  String
+  backupCodes             String    @map("backup_codes")
+  verified                Boolean   @default(true)
+  failedVerificationCount Int       @default(0) @map("failed_verification_count")
+  lockedUntil             DateTime? @map("locked_until")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("two_factors")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  userId                String    @map("user_id")
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId, providerId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([identifier])
+  @@index([expiresAt])
+  @@map("verifications")
+}
+
+model RateLimit {
+  id          String @id
+  key         String @unique
+  count       Int
+  lastRequest BigInt @map("last_request")
+
+  @@map("auth_rate_limits")
+}
+
+model UserPreference {
+  userId                  String   @id @map("user_id")
+  theme                   String   @default("system") @db.VarChar(24)
+  locale                  String   @default("en") @db.VarChar(32)
+  timeZone                String   @default("UTC") @map("time_zone") @db.VarChar(64)
+  defaultWorkspaceId      String?  @map("default_workspace_id") @db.Uuid
+  defaultModelKey         String?  @map("default_model_key") @db.VarChar(120)
+  aiPreferences           Json     @default("{}") @map("ai_preferences")
+  notificationPreferences Json     @default("{}") @map("notification_preferences")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+  version                 Int      @default(1)
+
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  defaultWorkspace Workspace? @relation(fields: [defaultWorkspaceId], references: [id], onDelete: SetNull)
+
+  @@index([defaultWorkspaceId])
+  @@map("user_preferences")
+}
+
+model UserProvisioning {
+  userId              String             @id @map("user_id")
+  status              ProvisioningStatus @default(PENDING)
+  personalWorkspaceId String?            @unique @map("personal_workspace_id") @db.Uuid
+  attemptCount        Int                @default(0) @map("attempt_count")
+  nextAttemptAt       DateTime?          @map("next_attempt_at")
+  leaseExpiresAt      DateTime?          @map("lease_expires_at")
+  lastErrorCode       String?            @map("last_error_code") @db.VarChar(80)
+  readyAt             DateTime?          @map("ready_at")
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+  version             Int                @default(1)
+
+  user              User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  personalWorkspace Workspace? @relation(fields: [personalWorkspaceId], references: [id], onDelete: SetNull)
+
+  @@index([status, nextAttemptAt])
+  @@map("user_provisioning")
+}
+
+model AccountDeletionRequest {
+  id                      String                @id @default(uuid()) @db.Uuid
+  userId                  String?               @map("user_id")
+  subjectIdHash           String                @map("subject_id_hash") @db.Char(64)
+  status                  AccountDeletionStatus @default(PENDING)
+  requestedAt             DateTime              @default(now()) @map("requested_at")
+  scheduledFor            DateTime              @map("scheduled_for")
+  cancellationTokenDigest String?               @unique @map("cancellation_token_digest") @db.Char(64)
+  cancellationExpiresAt   DateTime?             @map("cancellation_expires_at")
+  cancelledAt             DateTime?             @map("cancelled_at")
+  startedAt               DateTime?             @map("started_at")
+  completedAt             DateTime?             @map("completed_at")
+  failedAt                DateTime?             @map("failed_at")
+  failureCode             String?               @map("failure_code") @db.VarChar(80)
+  attemptCount            Int                   @default(0) @map("attempt_count")
+  nextAttemptAt           DateTime?             @map("next_attempt_at")
+  leaseExpiresAt          DateTime?             @map("lease_expires_at")
+  manifest                Json                  @default("{}")
+  createdAt               DateTime              @default(now()) @map("created_at")
+  updatedAt               DateTime              @updatedAt @map("updated_at")
+  version                 Int                   @default(1)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, scheduledFor])
+  @@index([status, nextAttemptAt])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("account_deletion_requests")
+}
+
+model Workspace {
+  id              String          @id @default(uuid()) @db.Uuid
+  kind            WorkspaceKind
+  name            String          @db.VarChar(120)
+  slug            String?         @db.VarChar(120)
+  ownerUserId     String          @map("owner_user_id")
+  createdByUserId String?         @map("created_by_user_id")
+  status          WorkspaceStatus @default(ACTIVE)
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  deletedAt       DateTime?       @map("deleted_at")
+  purgeAfter      DateTime?       @map("purge_after")
+  purgeStartedAt  DateTime?       @map("purge_started_at")
+  version         Int             @default(1)
+
+  owner                 User                    @relation("WorkspaceOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  creator               User?                   @relation("WorkspaceCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  members               WorkspaceMember[]
+  invitations           WorkspaceInvitation[]
+  storageQuota          WorkspaceStorageQuota?
+  provisioning          UserProvisioning?
+  defaultForUsers       UserPreference[]
+  auditLogs             AuditLog[]
+  outboxEvents          OutboxEvent[]
+  conversations         Conversation[]
+  documents             Document[]
+  documentRuns          DocumentProcessingRun[]
+  documentChunks        DocumentChunk[]
+  conversationDocuments ConversationDocument[]
+  messageCitations      MessageCitation[]
+  usageRecords          UsageRecord[]
+  usagePolicy           WorkspaceUsagePolicy?
+  usageQuotaPeriods     UsageQuotaPeriod[]
+  usageReservations     UsageReservation[]
+  notifications         Notification[]
+  workflows             Workflow[]
+  workflowExecutions    WorkflowExecution[]
+  workflowExecutionLogs WorkflowExecutionLog[]
+
+  @@index([ownerUserId, deletedAt])
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id              String        @id @default(uuid()) @db.Uuid
+  workspaceId     String        @map("workspace_id") @db.Uuid
+  userId          String        @map("user_id")
+  role            WorkspaceRole
+  joinedAt        DateTime      @default(now()) @map("joined_at")
+  invitedByUserId String?       @map("invited_by_user_id")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  version         Int           @default(1)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation("WorkspaceMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  inviter   User?     @relation("WorkspaceMemberInviter", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, userId])
+  @@index([userId, joinedAt(sort: Desc)])
+  @@index([workspaceId, role])
+  @@map("workspace_members")
+}
+
+model WorkspaceInvitation {
+  id               String                    @id @default(uuid()) @db.Uuid
+  workspaceId      String                    @map("workspace_id") @db.Uuid
+  email            String                    @db.VarChar(320)
+  role             WorkspaceRole
+  status           WorkspaceInvitationStatus @default(PENDING)
+  tokenDigest      String                    @unique @map("token_digest") @db.Char(64)
+  invitedByUserId  String?                   @map("invited_by_user_id")
+  expiresAt        DateTime                  @map("expires_at")
+  closedAt         DateTime?                 @map("closed_at")
+  acceptedAt       DateTime?                 @map("accepted_at")
+  acceptedByUserId String?                   @map("accepted_by_user_id")
+  createdAt        DateTime                  @default(now()) @map("created_at")
+  updatedAt        DateTime                  @updatedAt @map("updated_at")
+  version          Int                       @default(1)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  inviter   User?     @relation("WorkspaceInvitationInviter", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+  acceptor  User?     @relation("WorkspaceInvitationAcceptor", fields: [acceptedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([status, expiresAt])
+  @@index([email, expiresAt])
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@map("workspace_invitations")
+}
+
+model WorkspaceStorageQuota {
+  workspaceId           String   @id @map("workspace_id") @db.Uuid
+  byteLimit             BigInt?  @map("byte_limit")
+  documentLimit         Int?     @map("document_limit")
+  usedBytes             BigInt   @default(0) @map("used_bytes")
+  reservedBytes         BigInt   @default(0) @map("reserved_bytes")
+  documentCount         Int      @default(0) @map("document_count")
+  reservedDocumentCount Int      @default(0) @map("reserved_document_count")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  version               Int      @default(1)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("workspace_storage_quotas")
+}
+
+model Conversation {
+  id                  String             @id @default(uuid()) @db.Uuid
+  workspaceId         String             @map("workspace_id") @db.Uuid
+  createdByUserId     String?            @map("created_by_user_id")
+  title               String             @db.VarChar(200)
+  status              ConversationStatus @default(ACTIVE)
+  modelKey            String?            @map("model_key") @db.VarChar(120)
+  systemPromptVersion String?            @map("system_prompt_version") @db.VarChar(80)
+  activeLeafMessageId String?            @map("active_leaf_message_id") @db.Uuid
+  nextMessageSequence BigInt             @default(1) @map("next_message_sequence")
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+  lastMessageAt       DateTime           @default(now()) @map("last_message_at")
+  deletedAt           DateTime?          @map("deleted_at")
+  purgeAfter          DateTime?          @map("purge_after")
+  purgeStartedAt      DateTime?          @map("purge_started_at")
+  version             Int                @default(1)
+
+  workspace Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creator   User?                  @relation("ConversationCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  messages  Message[]
+  usage     UsageRecord[]
+  documents ConversationDocument[]
+
+  @@unique([id, workspaceId])
+  @@index([workspaceId, deletedAt, lastMessageAt(sort: Desc), id(sort: Desc)])
+  @@index([createdByUserId, lastMessageAt(sort: Desc)])
+  @@map("conversations")
+}
+
+model Message {
+  id                      String        @id @default(uuid()) @db.Uuid
+  workspaceId             String        @map("workspace_id") @db.Uuid
+  conversationId          String        @map("conversation_id") @db.Uuid
+  createdByUserId         String?       @map("created_by_user_id")
+  role                    MessageRole
+  status                  MessageStatus @default(PENDING)
+  sequence                BigInt
+  parentMessageId         String?       @map("parent_message_id") @db.Uuid
+  supersedesMessageId     String?       @map("supersedes_message_id") @db.Uuid
+  clientMessageId         String?       @map("client_message_id") @db.Uuid
+  clientGenerationId      String?       @map("client_generation_id") @db.Uuid
+  content                 String        @default("")
+  parts                   Json?
+  provider                String?       @db.VarChar(80)
+  model                   String?       @db.VarChar(120)
+  finishReason            String?       @map("finish_reason") @db.VarChar(80)
+  errorCode               String?       @map("error_code") @db.VarChar(80)
+  startedAt               DateTime?     @map("started_at")
+  cancelRequestedAt       DateTime?     @map("cancel_requested_at")
+  cancelRequestedByUserId String?       @map("cancel_requested_by_user_id")
+  completedAt             DateTime?     @map("completed_at")
+  createdAt               DateTime      @default(now()) @map("created_at")
+  updatedAt               DateTime      @updatedAt @map("updated_at")
+
+  conversation Conversation      @relation(fields: [conversationId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  creator      User?             @relation("MessageCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  canceller    User?             @relation("MessageCanceller", fields: [cancelRequestedByUserId], references: [id], onDelete: SetNull)
+  parent       Message?          @relation("MessageParent", fields: [parentMessageId, conversationId, workspaceId], references: [id, conversationId, workspaceId], onDelete: Restrict, onUpdate: NoAction)
+  children     Message[]         @relation("MessageParent")
+  supersedes   Message?          @relation("MessageSupersedes", fields: [supersedesMessageId, conversationId, workspaceId], references: [id, conversationId, workspaceId], onDelete: Restrict, onUpdate: NoAction)
+  supersededBy Message[]         @relation("MessageSupersedes")
+  usage        UsageRecord[]
+  citations    MessageCitation[]
+
+  @@unique([conversationId, sequence])
+  @@unique([id, workspaceId])
+  @@unique([id, conversationId, workspaceId])
+  @@index([conversationId, createdAt, id])
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@map("messages")
+}
+
+model AiRateLimitBucket {
+  key             String   @db.VarChar(200)
+  windowStartedAt DateTime @map("window_started_at")
+  count           Int      @default(0)
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@id([key, windowStartedAt])
+  @@index([windowStartedAt])
+  @@map("ai_rate_limit_buckets")
+}
+
+model Document {
+  id                    String          @id @default(uuid()) @db.Uuid
+  workspaceId           String          @map("workspace_id") @db.Uuid
+  createdByUserId       String?         @map("created_by_user_id")
+  name                  String          @db.VarChar(240)
+  originalFilename      String          @map("original_filename") @db.VarChar(240)
+  status                DocumentStatus  @default(UPLOADING)
+  statusBeforeDeletion  DocumentStatus? @map("status_before_deletion")
+  storageKey            String          @unique @map("storage_key") @db.VarChar(512)
+  storageVersionId      String?         @map("storage_version_id") @db.VarChar(256)
+  mimeType              String          @map("mime_type") @db.VarChar(120)
+  sizeBytes             BigInt          @map("size_bytes")
+  sha256                String?         @db.Char(64)
+  detectedMimeType      String?         @map("detected_mime_type") @db.VarChar(120)
+  pageCount             Int?            @map("page_count")
+  language              String?         @db.VarChar(32)
+  summary               String?
+  activeProcessingRunId String?         @map("active_processing_run_id") @db.Uuid
+  failureCode           String?         @map("failure_code") @db.VarChar(80)
+  uploadedAt            DateTime?       @map("uploaded_at")
+  processedAt           DateTime?       @map("processed_at")
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
+  deletedAt             DateTime?       @map("deleted_at")
+  purgeAfter            DateTime?       @map("purge_after")
+  purgeStartedAt        DateTime?       @map("purge_started_at")
+  version               Int             @default(1)
+
+  workspace           Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creator             User?                   @relation("DocumentCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  processingRuns      DocumentProcessingRun[] @relation("DocumentProcessingRuns")
+  activeProcessingRun DocumentProcessingRun?  @relation("DocumentActiveProcessingRun", fields: [activeProcessingRunId, id, workspaceId], references: [id, documentId, workspaceId], onDelete: NoAction, onUpdate: NoAction)
+  chunks              DocumentChunk[]
+  conversations       ConversationDocument[]
+
+  @@unique([id, workspaceId])
+  @@unique([activeProcessingRunId, id, workspaceId])
+  @@index([workspaceId, deletedAt, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([workspaceId, status, updatedAt])
+  @@index([workspaceId, sha256])
+  @@map("documents")
+}
+
+model DocumentProcessingRun {
+  id                  String                   @id @default(uuid()) @db.Uuid
+  workspaceId         String                   @map("workspace_id") @db.Uuid
+  documentId          String                   @map("document_id") @db.Uuid
+  status              DocumentProcessingStatus @default(QUEUED)
+  attempt             Int
+  extractor           String                   @db.VarChar(80)
+  extractorVersion    String                   @map("extractor_version") @db.VarChar(40)
+  chunkerVersion      String                   @map("chunker_version") @db.VarChar(40)
+  queueJobId          String?                  @unique @map("queue_job_id") @db.VarChar(128)
+  startedAt           DateTime?                @map("started_at")
+  finishedAt          DateTime?                @map("finished_at")
+  errorCode           String?                  @map("error_code") @db.VarChar(80)
+  errorDetailRedacted String?                  @map("error_detail_redacted") @db.VarChar(160)
+  metrics             Json                     @default("{}")
+  createdAt           DateTime                 @default(now()) @map("created_at")
+
+  workspace         Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  document          Document        @relation("DocumentProcessingRuns", fields: [documentId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  activeForDocument Document?       @relation("DocumentActiveProcessingRun")
+  chunks            DocumentChunk[]
+
+  @@unique([documentId, attempt])
+  @@unique([id, documentId, workspaceId])
+  @@index([status, createdAt])
+  @@index([workspaceId, documentId, attempt(sort: Desc)])
+  @@map("document_processing_runs")
+}
+
+model DocumentChunk {
+  id              String   @id @default(uuid()) @db.Uuid
+  workspaceId     String   @map("workspace_id") @db.Uuid
+  documentId      String   @map("document_id") @db.Uuid
+  processingRunId String   @map("processing_run_id") @db.Uuid
+  ordinal         Int
+  content         String
+  tokenCount      Int      @map("token_count")
+  pageStart       Int?     @map("page_start")
+  pageEnd         Int?     @map("page_end")
+  charStart       Int?     @map("char_start")
+  charEnd         Int?     @map("char_end")
+  contentSha256   String   @map("content_sha256") @db.Char(64)
+  language        String?  @db.VarChar(32)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  workspace     Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  document      Document              @relation(fields: [documentId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  processingRun DocumentProcessingRun @relation(fields: [processingRunId, documentId, workspaceId], references: [id, documentId, workspaceId], onDelete: Cascade, onUpdate: NoAction)
+  citations     MessageCitation[]
+
+  @@unique([documentId, processingRunId, ordinal])
+  @@unique([id, workspaceId])
+  @@index([workspaceId, documentId, processingRunId, ordinal])
+  @@index([contentSha256])
+  @@map("document_chunks")
+}
+
+model ConversationDocument {
+  workspaceId      String   @map("workspace_id") @db.Uuid
+  conversationId   String   @map("conversation_id") @db.Uuid
+  documentId       String   @map("document_id") @db.Uuid
+  attachedByUserId String?  @map("attached_by_user_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  document     Document     @relation(fields: [documentId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  attachedBy   User?        @relation("ConversationDocumentAttacher", fields: [attachedByUserId], references: [id], onDelete: SetNull)
+
+  @@id([conversationId, documentId])
+  @@index([workspaceId, documentId])
+  @@map("conversation_documents")
+}
+
+model MessageCitation {
+  id                   String   @id @default(uuid()) @db.Uuid
+  workspaceId          String   @map("workspace_id") @db.Uuid
+  messageId            String   @map("message_id") @db.Uuid
+  documentChunkId      String?  @map("document_chunk_id") @db.Uuid
+  documentIdSnapshot   String   @map("document_id_snapshot") @db.Uuid
+  chunkOrdinalSnapshot Int      @map("chunk_ordinal_snapshot")
+  chunkContentSha256   String   @map("chunk_content_sha256") @db.Char(64)
+  excerpt              String   @db.VarChar(800)
+  ordinal              Int
+  pageStart            Int?     @map("page_start")
+  pageEnd              Int?     @map("page_end")
+  label                String?  @db.VarChar(240)
+  relevanceScore       Decimal? @map("relevance_score") @db.Decimal(8, 6)
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  message       Message        @relation(fields: [messageId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  documentChunk DocumentChunk? @relation(fields: [documentChunkId], references: [id], onDelete: SetNull)
+
+  @@unique([messageId, ordinal])
+  @@index([documentChunkId])
+  @@index([documentIdSnapshot])
+  @@map("message_citations")
+}
+
+model UsageRecord {
+  id                               String             @id @default(uuid()) @db.Uuid
+  operationId                      String             @unique @map("operation_id") @db.Uuid
+  logicalOperationId               String             @map("logical_operation_id") @db.Uuid
+  workspaceId                      String?            @map("workspace_id") @db.Uuid
+  userId                           String?            @map("user_id")
+  conversationId                   String?            @map("conversation_id") @db.Uuid
+  messageId                        String?            @map("message_id") @db.Uuid
+  workflowExecutionId              String?            @map("workflow_execution_id") @db.Uuid
+  requestId                        String             @map("request_id") @db.VarChar(128)
+  attempt                          Int                @default(1)
+  providerRequestId                String?            @map("provider_request_id") @db.VarChar(256)
+  operation                        String             @db.VarChar(80)
+  provider                         String             @db.VarChar(80)
+  model                            String             @db.VarChar(120)
+  status                           UsageStatus
+  usageSource                      UsageSource        @default(UNAVAILABLE) @map("usage_source")
+  inputTokens                      BigInt             @default(0) @map("input_tokens")
+  outputTokens                     BigInt             @default(0) @map("output_tokens")
+  cachedInputTokens                BigInt?            @map("cached_input_tokens")
+  reasoningTokens                  BigInt?            @map("reasoning_tokens")
+  estimatedCostMicros              BigInt             @default(0) @map("estimated_cost_micros")
+  currency                         String             @default("USD") @db.Char(3)
+  pricingVersion                   String             @map("pricing_version") @db.VarChar(80)
+  pricingStatus                    UsagePricingStatus @default(UNPRICED) @map("pricing_status")
+  modelPriceId                     String?            @map("model_price_id") @db.Uuid
+  inputPriceMicrosPerMillion       BigInt?            @map("input_price_micros_per_million")
+  cachedInputPriceMicrosPerMillion BigInt?            @map("cached_input_price_micros_per_million")
+  outputPriceMicrosPerMillion      BigInt?            @map("output_price_micros_per_million")
+  latencyMs                        Int?               @map("latency_ms")
+  occurredAt                       DateTime           @default(now()) @map("occurred_at")
+  metadata                         Json               @default("{}")
+
+  workspace         Workspace?         @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  user              User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  conversation      Conversation?      @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  message           Message?           @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  modelPrice        AiModelPrice?      @relation(fields: [modelPriceId], references: [id], onDelete: SetNull)
+  workflowExecution WorkflowExecution? @relation(fields: [workflowExecutionId], references: [id], onDelete: SetNull)
+
+  @@unique([logicalOperationId, attempt])
+  @@index([requestId, occurredAt])
+  @@index([userId, occurredAt(sort: Desc), id(sort: Desc)])
+  @@index([workspaceId, occurredAt(sort: Desc), id(sort: Desc)])
+  @@index([provider, model, occurredAt])
+  @@index([pricingStatus, occurredAt])
+  @@index([status, occurredAt])
+  @@map("usage_records")
+}
+
+model Workflow {
+  id              String         @id @default(uuid()) @db.Uuid
+  workspaceId     String         @map("workspace_id") @db.Uuid
+  createdByUserId String?        @map("created_by_user_id")
+  name            String         @db.VarChar(120)
+  description     String?        @db.VarChar(500)
+  status          WorkflowStatus @default(DRAFT)
+  activeVersionId String?        @map("active_version_id") @db.Uuid
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  deletedAt       DateTime?      @map("deleted_at")
+  purgeAfter      DateTime?      @map("purge_after")
+  purgeStartedAt  DateTime?      @map("purge_started_at")
+  version         Int            @default(1)
+
+  workspace     Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creator       User?               @relation("WorkflowCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  versions      WorkflowVersion[]   @relation("WorkflowVersions")
+  activeVersion WorkflowVersion?    @relation("ActiveWorkflowVersion", fields: [activeVersionId], references: [id], onDelete: SetNull)
+  executions    WorkflowExecution[]
+
+  @@unique([id, workspaceId])
+  @@index([workspaceId, deletedAt, updatedAt(sort: Desc), id(sort: Desc)])
+  @@index([createdByUserId, createdAt(sort: Desc)])
+  @@map("workflows")
+}
+
+model WorkflowVersion {
+  id               String    @id @default(uuid()) @db.Uuid
+  workspaceId      String    @map("workspace_id") @db.Uuid
+  workflowId       String    @map("workflow_id") @db.Uuid
+  versionNumber    Int       @map("version_number")
+  schemaVersion    String    @map("schema_version") @db.VarChar(40)
+  definition       Json
+  createdByUserId  String?   @map("created_by_user_id")
+  publishedAt      DateTime? @map("published_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  definitionSha256 String    @map("definition_sha256") @db.Char(64)
+
+  workflow   Workflow            @relation("WorkflowVersions", fields: [workflowId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  creator    User?               @relation("WorkflowVersionCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  activeFor  Workflow[]          @relation("ActiveWorkflowVersion")
+  executions WorkflowExecution[]
+
+  @@unique([workflowId, versionNumber])
+  @@unique([id, workspaceId])
+  @@unique([id, workflowId, workspaceId])
+  @@index([workflowId, definitionSha256])
+  @@index([workspaceId, workflowId, versionNumber(sort: Desc)])
+  @@map("workflow_versions")
+}
+
+model WorkflowExecution {
+  id                   String                  @id @default(uuid()) @db.Uuid
+  workspaceId          String                  @map("workspace_id") @db.Uuid
+  workflowId           String                  @map("workflow_id") @db.Uuid
+  workflowVersionId    String                  @map("workflow_version_id") @db.Uuid
+  requestedByUserId    String?                 @map("requested_by_user_id")
+  status               WorkflowExecutionStatus @default(QUEUED)
+  input                Json
+  inputSha256          String                  @map("input_sha256") @db.Char(64)
+  output               Json?
+  errorCode            String?                 @map("error_code") @db.VarChar(80)
+  errorDetailRedacted  String?                 @map("error_detail_redacted") @db.VarChar(240)
+  idempotencyKeyHash   String                  @unique @map("idempotency_key_hash") @db.Char(64)
+  queueJobId           String?                 @unique @map("queue_job_id") @db.VarChar(128)
+  runNumber            Int                     @default(1) @map("run_number")
+  stepLimit            Int                     @map("step_limit")
+  timeoutMs            Int                     @map("timeout_ms")
+  outputCharacterLimit Int                     @map("output_character_limit")
+  startedAt            DateTime?               @map("started_at")
+  finishedAt           DateTime?               @map("finished_at")
+  cancelRequestedAt    DateTime?               @map("cancel_requested_at")
+  createdAt            DateTime                @default(now()) @map("created_at")
+  updatedAt            DateTime                @updatedAt @map("updated_at")
+  version              Int                     @default(1)
+
+  workspace       Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workflow        Workflow               @relation(fields: [workflowId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  workflowVersion WorkflowVersion        @relation(fields: [workflowVersionId, workflowId, workspaceId], references: [id, workflowId, workspaceId], onDelete: Restrict, onUpdate: NoAction)
+  requester       User?                  @relation("WorkflowExecutionRequester", fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  logs            WorkflowExecutionLog[]
+  usageRecords    UsageRecord[]
+
+  @@unique([id, workspaceId])
+  @@unique([id, workflowId, workspaceId])
+  @@index([workspaceId, workflowId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([status, createdAt])
+  @@index([requestedByUserId, createdAt(sort: Desc)])
+  @@map("workflow_executions")
+}
+
+model WorkflowExecutionLog {
+  id          String           @id @default(uuid()) @db.Uuid
+  workspaceId String           @map("workspace_id") @db.Uuid
+  executionId String           @map("execution_id") @db.Uuid
+  sequence    BigInt
+  nodeId      String?          @map("node_id") @db.VarChar(80)
+  level       WorkflowLogLevel @default(INFO)
+  event       String           @db.VarChar(80)
+  message     String           @db.VarChar(240)
+  data        Json             @default("{}")
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  workspace Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  execution WorkflowExecution @relation(fields: [executionId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+
+  @@unique([executionId, sequence])
+  @@index([workspaceId, executionId, sequence])
+  @@index([createdAt])
+  @@map("workflow_execution_logs")
+}
+
+model AiModelPrice {
+  id                               String    @id @default(uuid()) @db.Uuid
+  provider                         String    @db.VarChar(80)
+  model                            String    @db.VarChar(120)
+  version                          String    @unique @db.VarChar(80)
+  currency                         String    @default("USD") @db.Char(3)
+  inputPriceMicrosPerMillion       BigInt    @map("input_price_micros_per_million")
+  cachedInputPriceMicrosPerMillion BigInt?   @map("cached_input_price_micros_per_million")
+  outputPriceMicrosPerMillion      BigInt    @map("output_price_micros_per_million")
+  effectiveFrom                    DateTime  @map("effective_from")
+  effectiveTo                      DateTime? @map("effective_to")
+  sourceUrl                        String    @map("source_url") @db.VarChar(2048)
+  createdAt                        DateTime  @default(now()) @map("created_at")
+
+  usageRecords UsageRecord[]
+  reservations UsageReservation[]
+
+  @@unique([provider, model, effectiveFrom])
+  @@index([provider, model, effectiveFrom(sort: Desc)])
+  @@map("ai_model_prices")
+}
+
+model WorkspaceUsagePolicy {
+  workspaceId      String   @id @map("workspace_id") @db.Uuid
+  requestLimit     BigInt?  @map("request_limit")
+  inputTokenLimit  BigInt?  @map("input_token_limit")
+  outputTokenLimit BigInt?  @map("output_token_limit")
+  costLimitMicros  BigInt?  @map("cost_limit_micros")
+  currency         String   @default("USD") @db.Char(3)
+  updatedByUserId  String?  @map("updated_by_user_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  version          Int      @default(1)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("workspace_usage_policies")
+}
+
+model UsageQuotaPeriod {
+  id                   String   @id @default(uuid()) @db.Uuid
+  workspaceId          String   @map("workspace_id") @db.Uuid
+  periodStart          DateTime @map("period_start")
+  periodEnd            DateTime @map("period_end")
+  policyVersion        Int      @map("policy_version")
+  requestLimit         BigInt?  @map("request_limit")
+  inputTokenLimit      BigInt?  @map("input_token_limit")
+  outputTokenLimit     BigInt?  @map("output_token_limit")
+  costLimitMicros      BigInt?  @map("cost_limit_micros")
+  consumedRequests     BigInt   @default(0) @map("consumed_requests")
+  consumedInputTokens  BigInt   @default(0) @map("consumed_input_tokens")
+  consumedOutputTokens BigInt   @default(0) @map("consumed_output_tokens")
+  consumedCostMicros   BigInt   @default(0) @map("consumed_cost_micros")
+  reservedRequests     BigInt   @default(0) @map("reserved_requests")
+  reservedInputTokens  BigInt   @default(0) @map("reserved_input_tokens")
+  reservedOutputTokens BigInt   @default(0) @map("reserved_output_tokens")
+  reservedCostMicros   BigInt   @default(0) @map("reserved_cost_micros")
+  currency             String   @default("USD") @db.Char(3)
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  version              Int      @default(1)
+
+  workspace    Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  reservations UsageReservation[]
+
+  @@unique([workspaceId, periodStart, periodEnd])
+  @@index([periodEnd])
+  @@map("usage_quota_periods")
+}
+
+model UsageReservation {
+  id                   String                 @id @default(uuid()) @db.Uuid
+  quotaPeriodId        String                 @map("quota_period_id") @db.Uuid
+  workspaceId          String                 @map("workspace_id") @db.Uuid
+  userId               String?                @map("user_id")
+  modelPriceId         String?                @map("model_price_id") @db.Uuid
+  logicalOperationId   String                 @unique @map("logical_operation_id") @db.Uuid
+  status               UsageReservationStatus @default(RESERVED)
+  reservedRequests     BigInt                 @default(1) @map("reserved_requests")
+  reservedInputTokens  BigInt                 @map("reserved_input_tokens")
+  reservedOutputTokens BigInt                 @map("reserved_output_tokens")
+  reservedCostMicros   BigInt                 @default(0) @map("reserved_cost_micros")
+  actualInputTokens    BigInt?                @map("actual_input_tokens")
+  actualOutputTokens   BigInt?                @map("actual_output_tokens")
+  actualCostMicros     BigInt?                @map("actual_cost_micros")
+  expiresAt            DateTime               @map("expires_at")
+  settledAt            DateTime?              @map("settled_at")
+  createdAt            DateTime               @default(now()) @map("created_at")
+  updatedAt            DateTime               @updatedAt @map("updated_at")
+
+  quotaPeriod UsageQuotaPeriod @relation(fields: [quotaPeriodId], references: [id], onDelete: Cascade)
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  modelPrice  AiModelPrice?    @relation(fields: [modelPriceId], references: [id], onDelete: SetNull)
+
+  @@index([quotaPeriodId, status, expiresAt])
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@map("usage_reservations")
+}
+
+model Notification {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @map("user_id")
+  workspaceId      String?   @map("workspace_id") @db.Uuid
+  type             String    @db.VarChar(80)
+  title            String    @db.VarChar(160)
+  body             String    @db.VarChar(500)
+  actionUrl        String?   @map("action_url") @db.VarChar(512)
+  data             Json      @default("{}")
+  deduplicationKey String?   @unique @map("deduplication_key") @db.Char(64)
+  readAt           DateTime? @map("read_at")
+  expiresAt        DateTime? @map("expires_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  version          Int       @default(1)
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+
+  @@index([userId, readAt, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([expiresAt])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id              String   @id @default(uuid()) @db.Uuid
+  workspaceId     String?  @map("workspace_id") @db.Uuid
+  actorUserId     String?  @map("actor_user_id")
+  actorKind       String   @map("actor_kind") @db.VarChar(40)
+  action          String   @db.VarChar(120)
+  targetType      String   @map("target_type") @db.VarChar(80)
+  targetId        String?  @map("target_id") @db.VarChar(128)
+  outcome         String   @db.VarChar(40)
+  requestId       String   @map("request_id") @db.VarChar(128)
+  ipHash          String?  @map("ip_hash") @db.Char(64)
+  userAgentFamily String?  @map("user_agent_family") @db.VarChar(80)
+  changes         Json     @default("{}")
+  metadata        Json     @default("{}")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  actor     User?      @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([actorUserId, createdAt(sort: Desc)])
+  @@index([targetType, targetId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+  @@index([requestId])
+  @@map("audit_logs")
+}
+
+model PlatformSetting {
+  key             String   @id @db.VarChar(80)
+  value           Json
+  schemaVersion   String   @map("schema_version") @db.VarChar(40)
+  updatedByUserId String?  @map("updated_by_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  version         Int      @default(1)
+
+  updater User? @relation("PlatformSettingUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([updatedByUserId, updatedAt(sort: Desc)])
+  @@map("platform_settings")
+}
+
+model AdminRateLimitBucket {
+  key             String   @db.VarChar(200)
+  windowStartedAt DateTime @map("window_started_at")
+  count           Int      @default(0)
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@id([key, windowStartedAt])
+  @@index([windowStartedAt])
+  @@map("admin_rate_limit_buckets")
+}
+
+model OutboxEvent {
+  id                String       @id @default(uuid()) @db.Uuid
+  deduplicationKey  String?      @unique @map("deduplication_key") @db.Char(64)
+  topic             String       @db.VarChar(120)
+  aggregateType     String       @map("aggregate_type") @db.VarChar(80)
+  aggregateId       String       @map("aggregate_id") @db.VarChar(128)
+  workspaceId       String?      @map("workspace_id") @db.Uuid
+  payload           Json
+  status            OutboxStatus @default(PENDING)
+  attempts          Int          @default(0)
+  availableAt       DateTime     @default(now()) @map("available_at")
+  publishedAt       DateTime?    @map("published_at")
+  lastErrorRedacted String?      @map("last_error_redacted") @db.VarChar(160)
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+
+  @@index([status, availableAt, createdAt])
+  @@index([aggregateType, aggregateId, createdAt])
+  @@map("outbox_events")
+}

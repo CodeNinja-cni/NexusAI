@@ -1,0 +1,9 @@
+.shell {
+  min-height: 100svh;
+  border: 0;
+  border-radius: 0;
+}
+
+.shell > :last-child {
+  align-self: start;
+}

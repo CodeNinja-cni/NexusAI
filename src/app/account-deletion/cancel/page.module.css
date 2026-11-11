@@ -1,0 +1,27 @@
+.panel {
+  max-width: 42rem;
+  margin: var(--space-10) auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: clamp(1.5rem, 5vw, 3rem);
+  background: var(--color-surface);
+}
+
+.panel > p:first-child {
+  color: var(--color-accent);
+  font: var(--font-label);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.panel h1 {
+  margin-block: var(--space-3);
+  font-size: clamp(2.2rem, 8vw, 4.5rem);
+  line-height: 1;
+}
+
+.panel > p:not(:first-child) {
+  margin-bottom: var(--space-6);
+  color: var(--color-text-muted);
+  line-height: 1.7;
+}

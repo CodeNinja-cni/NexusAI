@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "artifactPolicy": "Every process in one release uses the same immutable image revision.",
+  "processes": [
+    {
+      "name": "web",
+      "dockerTarget": "web",
+      "command": ["node", "server.js"],
+      "public": true,
+      "health": "/api/v1/health/live",
+      "readiness": "/api/v1/health/ready",
+      "gracefulShutdownSeconds": 30
+    },
+    {
+      "name": "document-worker",
+      "dockerTarget": "worker",
+      "command": ["npm", "run", "worker:documents"],
+      "public": false,
+      "minimumReplicas": 1,
+      "gracefulShutdownSeconds": 60
+    },
+    {
+      "name": "workflow-worker",
+      "dockerTarget": "worker",
+      "command": ["npm", "run", "worker:workflows"],
+      "public": false,
+      "minimumReplicas": 1,
+      "gracefulShutdownSeconds": 60
+    },
+    {
+      "name": "migration",
+      "dockerTarget": "migrate",
+      "command": ["npm", "run", "db:deploy"],
+      "public": false,
+      "releaseJob": true,
+      "maximumConcurrentRuns": 1
+    },
+    {
+      "name": "outbox-dispatch",
+      "dockerTarget": "worker",
+      "command": ["npm", "run", "outbox:dispatch"],
+      "public": false,
+      "schedule": "provider-managed; choose a reviewed interval of no more than one minute"
+    },
+    {
+      "name": "account-deletions",
+      "dockerTarget": "worker",
+      "command": ["npm", "run", "account-deletions:process"],
+      "public": false,
+      "schedule": "provider-managed; at least daily"
+    }
+  ]
+}

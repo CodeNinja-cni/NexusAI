@@ -1,0 +1,332 @@
+.showcase {
+  display: grid;
+  gap: clamp(5rem, 10vw, 9rem);
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(13rem, 0.5fr);
+  align-items: end;
+  gap: var(--space-8);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-8);
+}
+
+.hero h1 {
+  max-width: 13ch;
+  margin: var(--space-4) 0 var(--space-5);
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 8vw, 7rem);
+  font-stretch: condensed;
+  font-weight: 760;
+  letter-spacing: var(--letter-spacing-display);
+  line-height: 0.91;
+}
+
+.hero p {
+  max-width: 46rem;
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-lg);
+}
+
+.overline {
+  color: var(--color-accent-strong);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  font-weight: 700;
+  letter-spacing: var(--letter-spacing-label);
+  text-transform: uppercase;
+}
+
+.heroMeta {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  border-left: 1px solid var(--color-border);
+  padding-left: var(--space-5);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+}
+
+.sectionNav {
+  position: sticky;
+  z-index: calc(var(--layer-header) - 1);
+  top: calc(var(--header-height) + var(--space-3));
+  width: fit-content;
+  max-width: 100%;
+  margin-block: calc(var(--space-7) * -1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-1);
+  background: color-mix(in srgb, var(--color-background-elevated) 92%, transparent);
+  box-shadow: var(--shadow-panel);
+  backdrop-filter: blur(14px);
+}
+
+.section {
+  display: grid;
+  gap: var(--space-7);
+  scroll-margin-top: calc(var(--header-height) + 5rem);
+}
+
+.sectionHeading {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.sectionHeading > span {
+  padding-top: 0.3rem;
+  color: var(--color-accent-strong);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+}
+
+.sectionHeading h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--font-size-2xl);
+  letter-spacing: -0.035em;
+  line-height: var(--line-height-heading);
+}
+
+.sectionHeading p {
+  max-width: 48rem;
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+}
+
+.palette {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.swatch {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.swatch > span {
+  height: clamp(5rem, 11vw, 8.5rem);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.swatch strong {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-xs);
+}
+
+.swatch code {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2xs);
+}
+
+.void {
+  background: #08090d;
+}
+.carbon {
+  background: #11131a;
+}
+.signal {
+  background: #2457ff;
+}
+.burgundy {
+  background: #650d2d;
+}
+.paper {
+  background: #f5f5f7;
+}
+.graphite {
+  background: #9297a5;
+}
+
+.typeGrid {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr 0.8fr;
+  gap: var(--space-4);
+}
+
+.typeGrid > div {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-5);
+}
+
+.typeGrid p {
+  margin-bottom: 0;
+  color: var(--color-text-secondary);
+}
+
+.displaySample {
+  font-family: var(--font-display);
+  font-size: var(--font-size-2xl);
+  font-weight: 740;
+  letter-spacing: -0.04em;
+  line-height: var(--line-height-heading);
+}
+
+.monoSample {
+  display: block;
+  margin-top: var(--space-4);
+  color: var(--color-success);
+  font-size: var(--font-size-xs);
+  overflow-wrap: anywhere;
+}
+
+.controlGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+.buttonRows,
+.buttonRows > div,
+.inlineControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.buttonRows {
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+.formGrid > :nth-child(3),
+.formGrid > :last-child {
+  grid-column: 1 / -1;
+}
+
+.cards,
+.skeletonGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.stateGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.shellContent {
+  display: grid;
+  max-width: 40rem;
+  align-content: center;
+  gap: var(--space-4);
+}
+
+.shellContent h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.3rem, 6vw, 4.8rem);
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+}
+
+.shellContent p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-lg);
+}
+
+.commandBar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.commandBar kbd {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-background-elevated);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+}
+
+@media (max-width: 62rem) {
+  .palette {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .typeGrid,
+  .cards,
+  .skeletonGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 48rem) {
+  .hero,
+  .controlGrid,
+  .stateGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .heroMeta {
+    border-top: 1px solid var(--color-border);
+    border-left: 0;
+    padding-top: var(--space-5);
+    padding-left: 0;
+  }
+
+  .sectionNav {
+    top: var(--space-3);
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .formGrid > * {
+    grid-column: auto !important;
+  }
+}
+
+@media (max-width: 34rem) {
+  .palette {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hero h1 {
+    font-size: clamp(2.8rem, 17vw, 4.5rem);
+  }
+
+  .sectionHeading {
+    grid-template-columns: 1fr;
+  }
+
+  .inlineControls > * {
+    width: 100%;
+  }
+
+  .inlineControls button {
+    width: 100%;
+  }
+
+  .commandBar kbd {
+    display: none;
+  }
+}

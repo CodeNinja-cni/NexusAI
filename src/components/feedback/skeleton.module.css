@@ -1,0 +1,43 @@
+.skeleton {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+  background: var(--color-surface-hover);
+}
+
+.skeleton::after {
+  position: absolute;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.07), transparent);
+  content: "";
+  inset: 0;
+  transform: translateX(-100%);
+  animation: shimmer 1.6s var(--ease-standard) infinite;
+}
+
+.card {
+  display: grid;
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+}
+
+.lines {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: none;
+  }
+}

@@ -1,0 +1,91 @@
+.group {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.providerGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.providerButton {
+  display: inline-flex;
+  min-height: var(--control-height-lg);
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem var(--space-4);
+  background: color-mix(in srgb, var(--color-surface-raised) 82%, transparent);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 680;
+  cursor: pointer;
+  transition:
+    transform var(--transition-fast),
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.providerButton:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-accent) 52%, var(--color-border));
+  background: var(--color-surface-hover);
+  transform: translateY(-1px);
+}
+
+.providerButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+}
+
+.providerIcon,
+.providerIcon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+}
+
+.providerNote {
+  margin: calc(var(--space-2) * -1) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+  text-align: center;
+}
+
+.error {
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--color-danger) 50%, var(--color-border));
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.divider {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.divider::before,
+.divider::after {
+  height: 1px;
+  background: var(--color-border-subtle);
+  content: "";
+}
+
+@media (max-width: 32rem) {
+  .providerGrid {
+    grid-template-columns: 1fr;
+  }
+}

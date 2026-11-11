@@ -1,0 +1,52 @@
+.form {
+  display: grid;
+  gap: var(--space-5);
+  max-width: 42rem;
+}
+
+.check {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+  cursor: pointer;
+}
+
+.check input {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.2rem;
+  accent-color: var(--color-accent);
+}
+
+.check span {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.check small,
+.note {
+  color: var(--color-text-muted);
+}
+
+.note,
+.error,
+.status {
+  margin: 0;
+}
+
+.error,
+.status {
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+}
+
+.error {
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+}
+
+.status {
+  color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+}

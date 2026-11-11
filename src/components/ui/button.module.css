@@ -1,0 +1,114 @@
+.button {
+  display: inline-flex;
+  min-height: var(--control-height-md);
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding-inline: var(--space-5);
+  color: var(--color-text-primary);
+  font-weight: 720;
+  line-height: 1;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform var(--transition-fast),
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    box-shadow var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.button:disabled,
+.button[aria-disabled="true"] {
+  opacity: 0.48;
+  pointer-events: none;
+}
+
+.primary {
+  background: var(--color-accent);
+  box-shadow: 0 0.55rem 1.5rem rgb(36 87 255 / 0.2);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--color-accent-strong);
+  box-shadow: var(--shadow-accent);
+}
+
+.secondary {
+  border-color: var(--color-border);
+  background: var(--color-surface-raised);
+}
+
+.secondary:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-accent) 52%, var(--color-border));
+  background: var(--color-surface-hover);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.ghost:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+}
+
+.danger {
+  border-color: color-mix(in srgb, var(--color-danger) 34%, transparent);
+  background: var(--color-danger-muted);
+  color: #ffb7bf;
+}
+
+.danger:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-danger) 64%, transparent);
+  background: color-mix(in srgb, var(--color-danger-muted) 72%, var(--color-danger));
+  color: white;
+}
+
+.small {
+  min-height: var(--control-height-sm);
+  padding-inline: var(--space-3);
+  font-size: var(--font-size-xs);
+}
+
+.medium {
+  font-size: var(--font-size-sm);
+}
+
+.large {
+  min-height: var(--control-height-lg);
+  padding-inline: var(--space-6);
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+.spinner {
+  display: inline-flex;
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button:hover:not(:disabled) {
+    transform: none;
+  }
+}

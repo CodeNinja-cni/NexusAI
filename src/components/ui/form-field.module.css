@@ -1,0 +1,140 @@
+.field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.field > label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 680;
+}
+
+.field > label small {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2xs);
+  font-weight: 560;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.control {
+  width: 100%;
+  min-height: var(--control-height-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 0.85rem;
+  background: var(--color-background-elevated);
+  color: var(--color-text-primary);
+  line-height: 1.35;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.controlWrap {
+  position: relative;
+  display: block;
+}
+
+.controlWithAdornment {
+  padding-right: 3.25rem;
+}
+
+.passwordToggle {
+  position: absolute;
+  top: 50%;
+  right: 0.35rem;
+  display: inline-grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  place-items: center;
+  border: 0;
+  border-radius: calc(var(--radius-sm) - 0.2rem);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.passwordToggle:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+}
+
+.passwordToggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.control::placeholder {
+  color: var(--color-text-disabled);
+}
+
+.control:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+  background: var(--color-surface);
+}
+
+.control:focus-visible {
+  border-color: var(--color-accent-strong);
+}
+
+.control[aria-invalid="true"] {
+  border-color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger-muted) 28%, var(--color-background-elevated));
+}
+
+.control:disabled {
+  border-color: var(--color-border-subtle);
+  background: color-mix(in srgb, var(--color-background-elevated) 75%, black);
+  color: var(--color-text-disabled);
+  opacity: 0.72;
+}
+
+textarea.control {
+  min-height: 7.5rem;
+  resize: vertical;
+}
+
+.selectWrap {
+  position: relative;
+  display: block;
+}
+
+.selectWrap select {
+  appearance: none;
+  padding-right: 2.5rem;
+}
+
+.selectWrap svg {
+  position: absolute;
+  top: 50%;
+  right: var(--space-3);
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.hint,
+.error {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  font-weight: 480;
+  line-height: 1.45;
+}
+
+.hint {
+  color: var(--color-text-muted);
+}
+
+.error {
+  color: #ff9da7;
+}

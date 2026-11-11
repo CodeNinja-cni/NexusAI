@@ -1,0 +1,62 @@
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 42%, var(--color-border));
+  border-radius: var(--radius-pill);
+  padding: 0.42rem 0.72rem;
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface));
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.pill[data-tone="neutral"] {
+  border-color: var(--color-border);
+  background: var(--color-surface-raised);
+}
+
+.pill[data-tone="info"] {
+  border-color: color-mix(in srgb, var(--color-info) 42%, var(--color-border));
+  background: var(--color-info-muted);
+}
+
+.pill[data-tone="warning"] {
+  border-color: color-mix(in srgb, var(--color-warning) 42%, var(--color-border));
+  background: var(--color-warning-muted);
+}
+
+.pill[data-tone="danger"] {
+  border-color: color-mix(in srgb, var(--color-danger) 42%, var(--color-border));
+  background: var(--color-danger-muted);
+}
+
+.indicator {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: var(--color-success);
+  box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--color-success) 14%, transparent);
+}
+
+.pill[data-tone="neutral"] .indicator {
+  background: var(--color-text-muted);
+  box-shadow: none;
+}
+
+.pill[data-tone="info"] .indicator {
+  background: var(--color-info);
+  box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--color-info) 14%, transparent);
+}
+
+.pill[data-tone="warning"] .indicator {
+  background: var(--color-warning);
+  box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--color-warning) 14%, transparent);
+}
+
+.pill[data-tone="danger"] .indicator {
+  background: var(--color-danger);
+  box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--color-danger) 14%, transparent);
+}
